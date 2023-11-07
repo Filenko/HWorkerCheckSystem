@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package runner;
+
+service Runner {
+  rpc CheckProgram (CodeWithTests) returns (CheckResults) {}
+}
+
+message CodeWithTests {
+  string id = 1;
+  bytes program_code = 2;
+  repeated string tests = 3;
+}
+
+message CheckResults {
+  string id = 1;
+  repeated string result = 2;
+}
