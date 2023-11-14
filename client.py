@@ -40,12 +40,20 @@ async def run() -> None:
     async with grpc.aio.insecure_channel("localhost:5050") as channel:
         stub = run_pb2_grpc.RunnerStub(channel)
         programs = getPrograms()
-        for program in programs:
+
+        async def send_program(program):
+            print(f"Send program {program['id']}")
             programPb = run_pb2.CodeWithTests(program_code=program["program"], tests=program["tests"], id=program["id"])
             response = await stub.CheckProgram(programPb)
-            # for i, res in enumerate(response.result):
-            #     res = res[:-1]
-            #     # print(f"Test {i}:\n", res)
+            print(f"Get program {program['id']}")
+            for i, res in enumerate(response.result):
+                res = res[:-1]
+                print(f"Test {i}:\n", res)
+
+        tasks = [send_program(program) for program in programs]
+        await asyncio.gather(*tasks)
+
+
 
 
 if __name__ == "__main__":
