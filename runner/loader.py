@@ -1,29 +1,41 @@
 import os
 import shutil
+import tempfile
+import tarfile
 import subprocess
+import asyncio
 
 class Loader():
-    def __init__(self):
+    def __init__(self, container):
         self.path = "/home/run"
+        self.container = container
 
-    def DumpStringToFile(self, inputString, name):
-        savePath = os.path.join(self.path, name)
-        with open(savePath, "w") as f:
+    async def SaveStringAsFileToContainer(self, inputString, fileName):
+        tmpFile = tempfile.NamedTemporaryFile()
+        with open (tmpFile.name, "w") as f:
             f.write(inputString)
+        os.chdir(os.path.dirname(tmpFile.name))
+        srcname = os.path.basename(tmpFile.name)
+        tar = tarfile.open(tmpFile.name + '.tar', mode='w')
+        try:
+            tar.add(srcname)
+        finally:
+            tar.close()
+        data = open(tmpFile.name + '.tar', 'rb').read()
+        self.container.put_archive("/home/run/", data)
+        tmpFileName = tmpFile.name.split("/")[-1]
+        await asyncio.to_thread(self.container.exec_run, f"mv /home/run/{tmpFileName} /home/run/{fileName}", user = "root")
+        await asyncio.to_thread(self.container.exec_run, f"chown -R run:run /home/run", user = "root")
+        os.remove(tmpFile.name + '.tar')
+        tmpFile.close()
+        return tmpFileName
 
-    def LoadProgram(self, program, path = "/home/run"):
-        self.DumpStringToFile(program, "prog.py")
-        subprocess.run(["chown", "-R", "run:run", "/home/run"], user="root")
+    async def LoadTest(self, test):
+        await self.SaveStringAsFileToContainer(test, "test.in")
+    async def LoadProgram(self, program):
+        await self.SaveStringAsFileToContainer(program, "prog.py")
 
-    def LoadTest(self, test, path = "/home/run"):
-        self.DumpStringToFile(test, "test.in")
-        subprocess.run(["chown", "-R", "run:run", "/home/run"], user="root")
-
-    def ClearRunningDirectory(self, path = "/home/run"):
-        for root, dirs, files in os.walk('/home/run'):
-            for f in files:
-                os.unlink(os.path.join(root, f))
-            for d in dirs:
-                shutil.rmtree(os.path.join(root, d))
-        # shutil.rmtree('/tmp/')
-        # shutil.rmtree('/var/tmp')
+    async def ClearRunningDirectory(self):
+        await asyncio.to_thread(self.container.exec_run, f"rm -rf /home/run/*", user = "root")
+        await asyncio.to_thread(self.container.exec_run, f"rm -rf /tmp/*", user = "root")
+        await asyncio.to_thread(self.container.exec_run, f"rm -rf /var/tmp/*", user = "root")

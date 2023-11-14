@@ -43,9 +43,9 @@ async def run() -> None:
         for program in programs:
             programPb = run_pb2.CodeWithTests(program_code=program["program"], tests=program["tests"], id=program["id"])
             response = await stub.CheckProgram(programPb)
-            for i, res in enumerate(response.result):
-                res = res[:-1]
-                print(f"Test {i}:\n", res)
+            # for i, res in enumerate(response.result):
+            #     res = res[:-1]
+            #     # print(f"Test {i}:\n", res)
 
 
 if __name__ == "__main__":
