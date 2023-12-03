@@ -29,10 +29,10 @@ class Runner(run_pb2_grpc.RunnerServicer):
 
         return run_pb2.CheckResults(id = solution.id, result = runner.results)
 
-async def serve() -> None:
+async def serve(port) -> None:
     global container_manager
     container_manager = ContainerManager()
-    container_manager.RunContainers(30)
+    container_manager.RunContainers(10)
     # server = grpc.aio.server()
     # run_pb2_grpc.add_RunnerServicer_to_server(Runner(), server)
     # listen_addr = "[::]:5050"
@@ -41,9 +41,9 @@ async def serve() -> None:
     # await server.start()
     # await server.wait_for_termination()
 
-    server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=30))
+    server = grpc.aio.server(futures.ThreadPoolExecutor(max_workers=10))
     run_pb2_grpc.add_RunnerServicer_to_server(Runner(), server)
-    server.add_insecure_port('[::]:5050')
+    server.add_insecure_port(f'[::]:{port}')
     await server.start()
     await server.wait_for_termination()
 
